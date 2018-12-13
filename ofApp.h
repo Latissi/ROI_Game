@@ -1,6 +1,9 @@
 #pragma once
 
 #include "ofMain.h"
+#include "ofxCv.h"
+#include "ofxGui.h"
+#include "ofxOpenCv.h"
 
 class ofApp : public ofBaseApp{
 
@@ -20,11 +23,21 @@ class ofApp : public ofBaseApp{
 		void windowResized(int w, int h);
 		void dragEvent(ofDragInfo dragInfo);
 		void gotMessage(ofMessage msg);
+		ofxCvColorImage getBackground();
+		int* getHistogramm(ofxCvGrayscaleImage im);
+		int getThresholdIsodata(int*);
 
 		ofVideoGrabber camera;
+		ofxCvColorImage colorImage;
+		ofxCvGrayscaleImage grayImage;
+		ofxCvGrayscaleImage background;
+		ofxCvGrayscaleImage grayDiff;
 		ofTexture videoTexture;
 
 		int camWidth;
 		int camHeight;
+		int adaptiveThreshold;
+		bool starten;
+		int zaehler;
 		
 };
