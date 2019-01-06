@@ -33,6 +33,7 @@ class ofApp : public ofBaseApp{
 		ofxCvGrayscaleImage background;
 		ofxCvGrayscaleImage grayDiff;
 		ofTexture videoTexture;
+		ofImage tempImage;
 
 		int camWidth;
 		int camHeight;
