@@ -14,6 +14,7 @@ void ofApp::setup(){
 	colorImage.allocate(camWidth, camHeight);
 	background.allocate(camWidth, camHeight);
 	grayDiff.allocate(camWidth, camHeight);
+	tempImage.allocate(camWidth, camHeight, OF_IMAGE_GREYSCALE); // ofImage is required to convert grayscaleImage into Mat
 
 }
 
@@ -40,9 +41,24 @@ void ofApp::update(){
 			cout << "Threshold: " << adaptiveThreshold << endl;
 		}
 
-		grayDiff.threshold(adaptiveThreshold);						// Schwelle für das Schwarz/Weiß Bild
-
-
+		grayDiff.threshold(adaptiveThreshold);						// Schwelle fÃ¼r das Schwarz/WeiÃŸ Bild
+		
+		tempImage.setFromPixels(grayDiff.getPixels(), camWidth, camHeight, OF_IMAGE_GREYSCALE, false); //Transform Grayscale into ofImage
+		
+		Mat img = toCV(tempImage); //Convert it to Mat
+		
+		Rect ROI_1 (0, camHeight/3, camWidth/4, camHeight/3); //detects left hand
+		Rect ROI_2 (camWidth/4 * 3, camHeight/3, camWidth/4, camHeight/3); //detects right hand
+		
+		Mat Mat_ROI_1 = img(ROI_1);
+		
+		if (countNonZero(Mat_ROI_1) > ((Mat_ROI_1.columns() * Mat_ROI_1.rows()) / 4))
+			cout << "Left hand was detected!" << endl; //here the signals for the game are supposed to be generated
+		
+		Mat Mat_ROI_2 = img(ROI_2);
+		
+		if (countNonZero(Mat_ROI_2) > ((Mat_ROI_2.columns() * Mat_ROI_2.rows()) / 4))
+			cout << "Right hand was detected!" << endl;
 	}
 
 	
@@ -59,7 +75,12 @@ void ofApp::draw(){
 	background.draw(640, 0, 640, 480);
 	//camera.draw(640, 480, 640*2, 480*2);
 	//videoTexture.draw(20 + camWidth, 20, camWidth, camHeight);
-
+	
+	ofSetLineWidth(3);								//change line width
+	ofNoFill();									//set fill to transparency
+	ofSetColor(0,0,0);								//set stroke color to black
+	ofDrawRectangle(0, camHeight/3, camWidth/4, camHeight/3);			//draws the ROIs directly into the video frame
+	ofDrawRectangle(camWidth/4 * 3, camHeight/3, camWidth/4, camHeight/3);
 }
 
 //--------------------------------------------------------------
