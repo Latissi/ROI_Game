@@ -13,8 +13,11 @@ void ofApp::setup(){
 	camera.initGrabber(camWidth, camHeight);
 	colorImage.allocate(camWidth, camHeight);
 	background.allocate(camWidth, camHeight);
-	grayDiff.allocate(camWidth, camHeight);
-
+	binImage.allocate(camWidth, camHeight);
+	rightROI = new ofRectangle(0, camHeight / 3, camWidth / 4, camHeight / 3);
+	rectVec.push_back(rightROI);
+	leftROI = new ofRectangle(camWidth / 4 * 3, camHeight / 3, camWidth / 4, camHeight / 3);
+	rectVec.push_back(leftROI);
 }
 
 //--------------------------------------------------------------
@@ -34,29 +37,35 @@ void ofApp::update(){
 			//adaptiveThreshold = getThresholdIsodata(getHistogramm(grayImage));
 			starten = false;
 		}
-		grayDiff.absDiff(background, grayImage);	                // Hintergrundsubtraktion Pixel - Pixel
+		binImage.absDiff(background, grayImage);	                // Hintergrundsubtraktion Pixel - Pixel
 		if (zaehler % 20 == 0) {
-			adaptiveThreshold = getThresholdIsodata(getHistogramm(grayImage));
-			cout << "Threshold: " << adaptiveThreshold << endl;
+			setHistogramm(grayImage);
+			adaptiveThreshold = getThresholdIsodata();
+			//cout << "Threshold: " << adaptiveThreshold << endl;
 		}
 
-		grayDiff.threshold(adaptiveThreshold);						// Schwelle für das Schwarz/Weiß Bild
+		binImage.threshold(adaptiveThreshold);						// Schwelle für das Schwarz/Weiß Bild
 
+		if (zaehler % 500 == 0)
+			checkROI();
 
 	}
-
-	
-	//camera.update();
-
 }
 
 //--------------------------------------------------------------
 void ofApp::draw(){
 	ofSetWindowTitle("WEBCAM");
 	
-	grayDiff.draw(0, 0, 640, 480);
-	colorImage.draw(0, 480, 640, 480);
-	background.draw(640, 0, 640, 480);
+	binImage.draw(0, 0, 2*camWidth, 2*camHeight);
+	colorImage.draw(0, 2*camHeight, 2*camWidth, 2*camHeight);
+	background.draw(2*camWidth, 0, 2*camWidth, 2*camHeight);
+
+	for (ofRectangle *rect : rectVec) {
+		ofNoFill();
+		ofSetColor(200, 0, 0);
+		ofDrawRectangle(2*(rect->x), 2*(rect->y), 2*(rect->width), 2*(rect->height));
+	}
+	ofSetColor(255, 255, 255);
 	//camera.draw(640, 480, 640*2, 480*2);
 	//videoTexture.draw(20 + camWidth, 20, camWidth, camHeight);
 
@@ -126,22 +135,19 @@ ofxCvColorImage ofApp::getBackground() {
 	return colorImage; 
 }
 
-int* ofApp::getHistogramm(ofxCvGrayscaleImage im)
+void ofApp::setHistogramm(ofxCvGrayscaleImage im)
 {
-	Mat matImg = im.getCvImage();
-	int imgHistogram[256];
+	//Mat matImg = im.getCvImage();
 	for(int i = 0; i<76800; i+=4){
 		//cout << "p: " << (int)(im.getPixels()[i])<< endl;
 		++imgHistogram[(int)(im.getPixels()[i])];
 	}
-
-	return imgHistogram;
 }
 
-int ofApp::getThresholdIsodata(int* imageHistogram) {
+int ofApp::getThresholdIsodata() {
 	int theThreshold = 127; // our output
 
-	//if (input != NULL) { // sanity check
+	if (imgHistogram != NULL) { // sanity check
 	int thresh = theThreshold;
 	int tnew = thresh;
 	int thr = 0;
@@ -154,15 +160,15 @@ int ofApp::getThresholdIsodata(int* imageHistogram) {
 		sum = mean1 = mean2 = 0;
 
 		for (int i = 0; i < thr; i++) {
-			mean1 += (imageHistogram[i] * i);
-			sum += (imageHistogram[i]);
+			mean1 += (imgHistogram[i] * i);
+			sum += (imgHistogram[i]);
 		}
 		if (sum != 0) { mean1 = mean1 / sum; }
 
 		sum = 0;
 		for (int i = thr; i < 255; i++) {
-			mean2 += (imageHistogram[i] * i);
-			sum += (imageHistogram[i]);
+			mean2 += (imgHistogram[i] * i);
+			sum += (imgHistogram[i]);
 		}
 
 		if (sum != 0) { mean2 = mean2 / sum; }
@@ -171,9 +177,20 @@ int ofApp::getThresholdIsodata(int* imageHistogram) {
 
 	} while ((tnew != thr) && (ntries < 64));
 	theThreshold = tnew;
-	//}
+	}
 
 	return (theThreshold<30) ? 30 : theThreshold;
 }
 
-
+ofRectangle * ofApp::checkROI()
+{
+	for (ofRectangle *rect : rectVec)
+	{
+		if (binImage.countNonZeroInRegion(rect->x, rect->y, rect->width, rect->height)
+			> (rect->width * rect->height) / 4)
+			cout << "Bewegung in ROI erkannt!" << endl;
+		else
+			cout << "Es geschieht nichts" << endl;
+	}
+	return NULL;
+}

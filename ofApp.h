@@ -4,6 +4,7 @@
 #include "ofxCv.h"
 #include "ofxGui.h"
 #include "ofxOpenCv.h"
+#include <vector>
 
 class ofApp : public ofBaseApp{
 
@@ -24,14 +25,15 @@ class ofApp : public ofBaseApp{
 		void dragEvent(ofDragInfo dragInfo);
 		void gotMessage(ofMessage msg);
 		ofxCvColorImage getBackground();
-		int* getHistogramm(ofxCvGrayscaleImage im);
-		int getThresholdIsodata(int*);
+		void setHistogramm(ofxCvGrayscaleImage im);
+		int getThresholdIsodata();
+		ofRectangle* checkROI();
 
 		ofVideoGrabber camera;
 		ofxCvColorImage colorImage;
 		ofxCvGrayscaleImage grayImage;
 		ofxCvGrayscaleImage background;
-		ofxCvGrayscaleImage grayDiff;
+		ofxCvGrayscaleImage binImage;
 		ofTexture videoTexture;
 
 		int camWidth;
@@ -39,5 +41,8 @@ class ofApp : public ofBaseApp{
 		int adaptiveThreshold;
 		bool starten;
 		int zaehler;
-		
+		int imgHistogram[256];
+		vector<ofRectangle *> rectVec;
+		ofRectangle* rightROI;
+		ofRectangle* leftROI;
 };
