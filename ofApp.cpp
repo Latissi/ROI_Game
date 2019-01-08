@@ -75,7 +75,7 @@ void ofApp::update(){
 		binImage.threshold(threshold);
 
 		//Ueberpruefen ob Aenderung in den ROIs stattgefunden haben
-		if (zaehler % 500 == 0 && backgroundset)
+		if (zaehler % 300 == 0 && backgroundset)
 			checkROI();
 
 	}
@@ -85,14 +85,16 @@ void ofApp::update(){
 void ofApp::draw(){
 	ofSetWindowTitle("WEBCAM");
 	
-	binImage.draw(0, 0, 2*camWidth, 2*camHeight);
-	colorImage.draw(0, 2*camHeight, 2*camWidth, 2*camHeight);
-	background.draw(2*camWidth, 0, 2*camWidth, 2*camHeight);
+	binImage.draw(0, 0, scaleWindow*camWidth, scaleWindow*camHeight);
+	colorImage.draw(0, scaleWindow*camHeight, scaleWindow*camWidth,
+		scaleWindow*camHeight);
+	background.draw(scaleWindow*camWidth, 0, scaleWindow*camWidth, scaleWindow*camHeight);
 
 	for (RoiData *roi : vecROI) {
 		ofNoFill();
 		ofSetColor(200, 0, 0);
-		ofDrawRectangle(2*(roi->rect->x), 2*(roi->rect->y), 2*(roi->rect->width), 2*(roi->rect->height));
+		ofDrawRectangle(scaleWindow*(roi->rect->x), scaleWindow*(roi->rect->y),
+			scaleWindow*(roi->rect->width), scaleWindow*(roi->rect->height));
 	}
 	ofSetColor(255, 255, 255);
 

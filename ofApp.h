@@ -62,6 +62,7 @@ class ofApp : public ofBaseApp{
 		//HIER Parameter einstellen
 		const int camWidth = 320;
 		const int camHeight = 240;
+		const int scaleWindow = 1;
 
 		//CONTINOUS_MODE bestimmt, ob beim Ausloessen die Taste gehalten werden soll
 		const bool CONTINOUS_MODE_RIGHT = true;
@@ -79,7 +80,7 @@ class ofApp : public ofBaseApp{
 		//Zuweisen der ROIs zu den Tasten:
 		//Alle Belegungen unter:
 		//https://docs.microsoft.com/en-us/windows/desktop/inputdev/virtual-key-codes
-		const int buttonLeftHandROI = 0x57;
-		const int buttonRightHandROI = 0x45;
+		const int buttonLeftHandROI = 0x25;
+		const int buttonRightHandROI = 0x27;
 		const int buttonTopROI = 0x26;
 };
