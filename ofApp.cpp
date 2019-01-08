@@ -4,20 +4,52 @@ using namespace cv;
 
 //--------------------------------------------------------------
 void ofApp::setup(){
-	camWidth = 320;
-	camHeight = 240;
+	//Variablen vorinitialisieren-------------------------------
+	backgroundset = false;
+	zaehler = 0;
+	threshold = 30;
+
+	//Initialisierien der Kamera--------------------------------
 	camera.setDeviceID(0);
 	camera.setDesiredFrameRate(30);
-	zaehler = 0;
-	adaptiveThreshold = 30;
 	camera.initGrabber(camWidth, camHeight);
+	camera.videoSettings();
+
+	//Bildergroesse festlegen-----------------------------------
 	colorImage.allocate(camWidth, camHeight);
 	background.allocate(camWidth, camHeight);
 	binImage.allocate(camWidth, camHeight);
-	rightROI = new ofRectangle(0, camHeight / 3, camWidth / 4, camHeight / 3);
-	rectVec.push_back(rightROI);
-	leftROI = new ofRectangle(camWidth / 4 * 3, camHeight / 3, camWidth / 4, camHeight / 3);
-	rectVec.push_back(leftROI);
+
+	//Initialisieren der Regions Of Interest (ROI)--------------
+	//RoiData(name, x, y, breite, hoehe, key)
+	leftHandROI = 
+		new RoiData("linke Hand",0, camHeight / 3,camWidth / 4,
+			camHeight / 3, buttonLeftHandROI, CONTINOUS_MODE_LEFT);
+	rightHandROI =
+		new RoiData("rechte Hand", camWidth / 4 * 3, camHeight / 3,
+			camWidth / 4, camHeight / 3, buttonRightHandROI, CONTINOUS_MODE_RIGHT);
+	topROI =
+		new RoiData("oben",camWidth / 4, 0, camWidth / 2, camHeight / 5,
+			buttonTopROI, CONTINOUS_MODE_TOP);
+	vecROI.push_back(leftHandROI);
+	vecROI.push_back(rightHandROI);
+	vecROI.push_back(topROI);
+
+	//Initialisierung des virtuellen keyboards
+	keyboardIn.type = INPUT_KEYBOARD;
+	keyboardIn.ki.wScan = 0;
+	keyboardIn.ki.time = 0;
+	keyboardIn.ki.dwExtraInfo = 0;
+
+
+	//INFO:
+	cout << ">>INFO<<" << endl;
+	cout << "Adaptive Thresholding: " << ADAPTIVE_THRESHOLDING << endl;
+	cout << "ROI trigger Scaler: " << scaleROItrigger << endl;
+	cout << "Tastenbelegung: " << endl;
+	cout << "Taste linkes ROI: " << buttonLeftHandROI << endl;
+	cout << "Taste rechtes ROI: " << buttonRightHandROI << endl;
+	cout << "Taste oberes ROI: " << buttonTopROI << endl;
 }
 
 //--------------------------------------------------------------
@@ -26,27 +58,24 @@ void ofApp::update(){
 	//---------------- Webcam grabben--------------------//
 	camera.update();
 	if (camera.isFrameNew()) {
-		colorImage.setFromPixels(camera.getPixels());	                // Pixel von der Webcam in das ColorImage speichern
-		colorImage.mirror(0, 1);										// camera horizontal spiegeln
+		colorImage.setFromPixels(camera.getPixels());
+		colorImage.mirror(0, 1);										
 		grayImage = colorImage;
 
 		//---------------- Hintergrundsubstraktion------------//
-		if (starten == true)
-		{
-			background = grayImage;				// Aktuelle grayImage wird als Hintergrund in grayBackground gespeichert
-			//adaptiveThreshold = getThresholdIsodata(getHistogramm(grayImage));
-			starten = false;
-		}
 		binImage.absDiff(background, grayImage);	                // Hintergrundsubtraktion Pixel - Pixel
-		if (zaehler % 20 == 0) {
+
+		//adaptive Thresholding
+		if ((zaehler % 20 == 0) && ADAPTIVE_THRESHOLDING) {
 			setHistogramm(grayImage);
-			adaptiveThreshold = getThresholdIsodata();
-			//cout << "Threshold: " << adaptiveThreshold << endl;
+			threshold = getThresholdIsodata();
 		}
 
-		binImage.threshold(adaptiveThreshold);						// Schwelle für das Schwarz/Weiß Bild
+		//Einstellen der Schwelle fuer das Schwarz-Weiss Bild
+		binImage.threshold(threshold);
 
-		if (zaehler % 500 == 0)
+		//Ueberpruefen ob Aenderung in den ROIs stattgefunden haben
+		if (zaehler % 500 == 0 && backgroundset)
 			checkROI();
 
 	}
@@ -60,21 +89,19 @@ void ofApp::draw(){
 	colorImage.draw(0, 2*camHeight, 2*camWidth, 2*camHeight);
 	background.draw(2*camWidth, 0, 2*camWidth, 2*camHeight);
 
-	for (ofRectangle *rect : rectVec) {
+	for (RoiData *roi : vecROI) {
 		ofNoFill();
 		ofSetColor(200, 0, 0);
-		ofDrawRectangle(2*(rect->x), 2*(rect->y), 2*(rect->width), 2*(rect->height));
+		ofDrawRectangle(2*(roi->rect->x), 2*(roi->rect->y), 2*(roi->rect->width), 2*(roi->rect->height));
 	}
 	ofSetColor(255, 255, 255);
-	//camera.draw(640, 480, 640*2, 480*2);
-	//videoTexture.draw(20 + camWidth, 20, camWidth, camHeight);
 
 }
 
 //--------------------------------------------------------------
 void ofApp::keyPressed(int key){
 	if (key == OF_KEY_RETURN)
-		starten = true;
+		getBackground();
 
 }
 
@@ -128,22 +155,27 @@ void ofApp::dragEvent(ofDragInfo dragInfo){
 
 }
 
-ofxCvColorImage ofApp::getBackground() {
-	camera.update();
-	colorImage.setFromPixels(camera.getPixels());
-	colorImage.mirror(0, 1);
-	return colorImage; 
+/*getBackground: 
+  Funktion, die ein Bild (des Hintergrunds) macht
+  und zurückgibt*/
+void ofApp::getBackground() {
+	background = grayImage;
+	backgroundset = true;
+	cout << "Set background" << endl;
 }
 
+/*setHistogramm: 
+  Funktion, die ein Histogramm zu einem Bild anfertigt*/
 void ofApp::setHistogramm(ofxCvGrayscaleImage im)
 {
-	//Mat matImg = im.getCvImage();
 	for(int i = 0; i<76800; i+=4){
-		//cout << "p: " << (int)(im.getPixels()[i])<< endl;
 		++imgHistogram[(int)(im.getPixels()[i])];
 	}
 }
 
+/*getThresholdIsodata:
+  Funktion die das Histogramm auswertet und
+  darauf basierend den adaptiven Schwellenwert zurückgibt*/
 int ofApp::getThresholdIsodata() {
 	int theThreshold = 127; // our output
 
@@ -182,15 +214,51 @@ int ofApp::getThresholdIsodata() {
 	return (theThreshold<30) ? 30 : theThreshold;
 }
 
-ofRectangle * ofApp::checkROI()
+/*checkROI:
+  Funktion, die überprüft, ob eine Änderung in einer 
+  der ROIs stattgefunden hat.
+  Gibt diese Regions of interest zurück*/
+void ofApp::checkROI()
 {
-	for (ofRectangle *rect : rectVec)
+	for (RoiData *roi : vecROI)
 	{
-		if (binImage.countNonZeroInRegion(rect->x, rect->y, rect->width, rect->height)
-			> (rect->width * rect->height) / 4)
-			cout << "Bewegung in ROI erkannt!" << endl;
+		if (binImage.countNonZeroInRegion(roi->rect->x, roi->rect->y, roi->rect->width, roi->rect->height)
+	> (roi->rect->width * roi->rect->height) / scaleROItrigger)
+			handleROI(roi, true);
 		else
-			cout << "Es geschieht nichts" << endl;
+			handleROI(roi, false);
 	}
-	return NULL;
+}
+
+void ofApp::handleROI(RoiData* r, bool recognized)
+{
+	if (recognized && !(r->triggered)) {
+		cout << "ROI " << r->name <<" getriggert"<< endl;
+		r->triggered = true;
+		keyboardIn.ki.wVk = r->key;
+		//"0" für Taste gedrückt:
+		keyboardIn.ki.dwFlags = KEYEVENTF_EXTENDEDKEY;
+		SendInput(1, &keyboardIn, sizeof(INPUT));
+	}
+	else if (!recognized && r->triggered) {
+		cout << "ROI " << r->name << " deaktiviert" << endl;
+		r->triggered = false;
+		keyboardIn.ki.wVk = r->key;
+		//Taste "loslassen"
+		keyboardIn.ki.dwFlags = KEYEVENTF_KEYUP;
+		SendInput(1, &keyboardIn, sizeof(INPUT));
+	}
+	else if (recognized && r->triggered && r->CONTINOUS_MODE) {
+		SendInput(1, &keyboardIn, sizeof(INPUT));
+	}
+}
+
+RoiData::RoiData(string name, int x, int y, int width, int height,
+	int key, bool CONTINOUS_MODE)
+{
+	this->name = name;
+	this->rect = new ofRectangle(x, y, width, height);
+	this->key = key;
+	this->triggered = false;
+	this->CONTINOUS_MODE = CONTINOUS_MODE;
 }
