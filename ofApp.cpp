@@ -24,13 +24,13 @@ void ofApp::setup(){
 	//RoiData(name, x, y, breite, hoehe, key)
 	leftHandROI = 
 		new RoiData("linke Hand",0, camHeight / 3,camWidth / 4,
-			camHeight / 3, buttonLeftHandROI, CONTINOUS_MODE_LEFT);
+			camHeight / 3, buttonLeftHandROI, CONTINUOUS_MODE_LEFT);
 	rightHandROI =
 		new RoiData("rechte Hand", camWidth / 4 * 3, camHeight / 3,
-			camWidth / 4, camHeight / 3, buttonRightHandROI, CONTINOUS_MODE_RIGHT);
+			camWidth / 4, camHeight / 3, buttonRightHandROI, CONTINUOUS_MODE_RIGHT);
 	topROI =
 		new RoiData("oben",camWidth / 4, 0, camWidth / 2, camHeight / 5,
-			buttonTopROI, CONTINOUS_MODE_TOP);
+			buttonTopROI, CONTINUOUS_MODE_TOP);
 	vecROI.push_back(leftHandROI);
 	vecROI.push_back(rightHandROI);
 	vecROI.push_back(topROI);
@@ -63,7 +63,7 @@ void ofApp::update(){
 		grayImage = colorImage;
 
 		//---------------- Hintergrundsubstraktion------------//
-		binImage.absDiff(background, grayImage);	                // Hintergrundsubtraktion Pixel - Pixel
+		binImage.absDiff(background, grayImage);
 
 		//adaptive Thresholding
 		if ((zaehler % 20 == 0) && ADAPTIVE_THRESHOLDING) {
@@ -74,9 +74,22 @@ void ofApp::update(){
 		//Einstellen der Schwelle fuer das Schwarz-Weiss Bild
 		binImage.threshold(threshold);
 
-		//Ueberpruefen ob Aenderung in den ROIs stattgefunden haben
+		if (CLOSING) {
+			binImage.erode();
+			binImage.dilate();
+		}
+		else if (OPENING) {
+			binImage.dilate();
+			binImage.erode();
+		}
+
+		//Ueberpruefen ob Aenderung in den ROIs
 		if (zaehler % 300 == 0 && backgroundset)
 			checkROI();
+
+		//Overflow des zaehlers verhindern
+		if (zaehler >= INT_MAX - 1)
+			zaehler = 0;
 
 	}
 }
@@ -177,7 +190,8 @@ void ofApp::setHistogramm(ofxCvGrayscaleImage im)
 
 /*getThresholdIsodata:
   Funktion die das Histogramm auswertet und
-  darauf basierend den adaptiven Schwellenwert zurückgibt*/
+  darauf basierend den adaptiven Schwellenwert zurückgibt
+  Aus https://openframeworks.cc/ofBook/chapters/image_processing_computer_vision.html*/
 int ofApp::getThresholdIsodata() {
 	int theThreshold = 127; // our output
 

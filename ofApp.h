@@ -5,6 +5,7 @@
 #include "ofxGui.h"
 #include "ofxOpenCv.h"
 #include <vector>
+#include <limits.h>
 
 
 struct RoiData {
@@ -65,9 +66,9 @@ class ofApp : public ofBaseApp{
 		const int scaleWindow = 1;
 
 		//CONTINOUS_MODE bestimmt, ob beim Ausloessen die Taste gehalten werden soll
-		const bool CONTINOUS_MODE_RIGHT = true;
-		const bool CONTINOUS_MODE_LEFT = true;
-		const bool CONTINOUS_MODE_TOP = true;
+		const bool CONTINUOUS_MODE_RIGHT = true;
+		const bool CONTINUOUS_MODE_LEFT = true;
+		const bool CONTINUOUS_MODE_TOP = true;
 
 		//scaleROItrigger bestimmt die Sensitivitaet der Ausloesung der ROI
 		//Je groesser desto eher wird etwas in einem ROI erkannt
@@ -76,6 +77,10 @@ class ofApp : public ofBaseApp{
 		//Adaptive Thresholding bestimmt dynamisch den geeigneten Threshold,
 		//ist allerdings rechenaufwendig
 		const bool ADAPTIVE_THRESHOLDING = false;
+
+		//Erosion und Dialtion minimieren Störungen im Bild
+		const bool CLOSING = false;
+		const bool OPENING = true;
 
 		//Zuweisen der ROIs zu den Tasten:
 		//Alle Belegungen unter:
